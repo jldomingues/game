@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>É Muito Amor</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* O contêiner do jogo agora sempre usa 100% da largura e altura da tela visível */
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            background-color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #game-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.5;
+            z-index: 1;
+        }
+
+        #ui-container {
+            position: absolute;
+            top: 40px;
+            width: 100%;
+            display: flex;
+            justify-content: center; /* Centraliza a pontuação */
+            padding: 0 20px;
+            z-index: 10;
+        }
+        
+        .ui-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        #lives-text {
+            display: none; /* Esconde o contador de vidas */
+        }
+
+        #princess {
+            position: absolute;
+            top: 50px;
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            z-index: 5;
+            transition: left 0.5s ease-in-out;
+        }
+
+        #bucket {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            z-index: 5;
+            transition: left 0.1s linear, top 0.3s ease;
+        }
+
+        .item {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            z-index: 4;
+            /* A queda agora é controlada 100% pelo JavaScript, sem transição CSS */
+        }
+
+        #game-message-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            z-index: 20;
+            text-align: center;
+        }
+
+        #game-message-container h2 {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        #game-message-container p {
+            font-size: 24px;
+            margin: 0;
+        }
+        
+        #game-message-container button {
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        #game-message-container button:hover {
+            background-color: #45a049;
+        }
+        
+        #start-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            z-index: 30;
+        }
+        
+        #start-menu h1 {
+            font-size: 56px;
+            margin-bottom: 50px;
+        }
+        
+        #start-menu button {
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            background-color: #2196F3;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        #start-menu button:hover {
+            background-color: #0b7dda;
+        }
+
+        #final-photo {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            margin-top: 20px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <img id="game-background" src="https://reidolead.com.br/game/01.jpg" alt="Background">
+        <div id="ui-container">
+            <span class="ui-text">Pontuação: <span id="score">0</span></span>
+            <span class="ui-text" id="lives-text">Vidas: <span id="lives">5</span></span>
+        </div>
+        <img id="princess" src="https://art.pixilart.com/35ab1033d85d3cc.png" alt="Princesa">
+        <img id="bucket" src="https://cdn.pixabay.com/photo/2022/02/20/15/34/avatar-7024802_1280.png" alt="Balde">
+
+        <div id="start-menu">
+            <h1>É muito Amor</h1>
+            <button id="start-button">Começar</button>
+        </div>
+        
+        <div id="game-message-container" style="display: none;">
+            <h2 id="message-title"></h2>
+            <p id="message-text"></p>
+            <img id="final-photo" style="display: none;" src="" alt="Final Photo">
+            <button id="restart-button">Reiniciar</button>
+        </div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const bucket = document.getElementById('bucket');
+        const princess = document.getElementById('princess');
+        const scoreElement = document.getElementById('score');
+        const livesElement = document.getElementById('lives');
+        const startMenu = document.getElementById('start-menu');
+        const startButton = document.getElementById('start-button');
+        const messageContainer = document.getElementById('game-message-container');
+        const messageTitle = document.getElementById('message-title');
+        const messageText = document.getElementById('message-text');
+        const finalPhoto = document.getElementById('final-photo');
+        const restartButton = document.getElementById('restart-button');
+        const gameBackground = document.getElementById('game-background');
+        
+        // Game settings and state
+        const BUCKET_WIDTH = 80;
+        const BUCKET_HEIGHT = 80;
+        const ITEM_SIZE = 40;
+        const ITEM_INTERVAL = 800;
+        const PRINCESS_HEIGHT = 100;
+        
+        let score = 0;
+        let lives = 5;
+        let bucketX;
+        let bucketY;
+        let princessX;
+        let gameLoopInterval;
+        let itemDropInterval;
+        let princessMoveInterval;
+
+        // URLs dos assets
+        const assetUrls = {
+            heart: 'https://media-public.canva.com/G53dg/MAFXU-G53dg/1/tl.png',
+            bomb: 'https://static.vecteezy.com/system/resources/thumbnails/047/236/645/small_2x/3d-illustration-bomb-png.png',
+            final: 'https://reidolead.com.br/game/03.jpg',
+            startBackground: 'https://reidolead.com.br/game/02.jpg',
+            gameBackground: 'https://reidolead.com.br/game/01.jpg'
+        };
+
+        // Carrega e gerencia os objetos de áudio
+        const sounds = {
+            collect: new Audio('https://reidolead.com.br/game/combo.mp3'),
+            bomb: new Audio('https://reidolead.com.br/game/bomb.mp3'),
+            backgroundMusic: new Audio('https://reidolead.com.br/game/love.mp3')
+        };
+        
+        // Configura o loop da música de fundo
+        sounds.backgroundMusic.loop = true;
+
+        // Funções do jogo
+        function updateUI() {
+            scoreElement.textContent = score;
+        }
+
+        function createItem() {
+            const isBomb = Math.random() < 0.7;
+            const item = document.createElement('img');
+            item.className = 'item';
+            item.src = isBomb ? assetUrls.bomb : assetUrls.heart;
+            item.dataset.type = isBomb ? 'bomb' : 'heart';
+            item.style.left = `${Math.random() * (gameContainer.offsetWidth - ITEM_SIZE)}px`;
+            item.style.top = `-${ITEM_SIZE}px`;
+            gameContainer.appendChild(item);
+        }
+
+        function gameLoop() {
+            const items = document.querySelectorAll('.item');
+            items.forEach(item => {
+                let top = parseInt(item.style.top, 10);
+                const speed = 5; 
+                item.style.top = `${top + speed}px`;
+
+                // Verifica se há colisão com o balde
+                const itemRect = item.getBoundingClientRect();
+                const bucketRect = bucket.getBoundingClientRect();
+
+                if (itemRect.bottom >= bucketRect.top && 
+                    itemRect.right >= bucketRect.left && 
+                    itemRect.left <= bucketRect.right && 
+                    itemRect.top <= bucketRect.bottom) {
+
+                    if (item.dataset.type === 'bomb') {
+                        lives--;
+                        bucketY = Math.min(bucketY + 60, gameContainer.offsetHeight - BUCKET_HEIGHT - 20);
+                        sounds.bomb.play();
+                    } else {
+                        score++;
+                        // Aumenta o "pulo" do balde para 25px
+                        bucketY = Math.max(bucketY - 25, 20);
+                        sounds.collect.play();
+                    }
+                    item.remove();
+                    updateUI();
+                }
+
+                // Remove o item se ele cair da tela
+                if (top > gameContainer.offsetHeight) {
+                    item.remove();
+                }
+            });
+
+            // Verifica colisão do balde com a princesa
+            if (bucketY <= princess.offsetTop + PRINCESS_HEIGHT / 2) {
+                 if (bucketX + BUCKET_WIDTH > princessX && bucketX < princessX + princess.offsetWidth) {
+                    endGame('success');
+                 }
+            }
+
+            if (lives <= 0) {
+                endGame('gameOver');
+            }
+            
+            // Atualiza a posição do balde
+            bucket.style.top = `${bucketY}px`;
+        }
+        
+        function movePrincess() {
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            princessX = princessX + direction * Math.random() * 40;
+            if (princessX < 0) princessX = 0;
+            else if (princessX > gameContainer.offsetWidth - princess.offsetWidth) princessX = gameContainer.offsetWidth - princess.offsetWidth;
+            princess.style.left = `${princessX}px`;
+        }
+
+        function startGame() {
+            sounds.backgroundMusic.play();
+            startMenu.style.display = 'none';
+            messageContainer.style.display = 'none';
+            gameBackground.src = assetUrls.gameBackground;
+            score = 0;
+            lives = 5;
+            bucketX = (gameContainer.offsetWidth / 2) - (BUCKET_WIDTH / 2);
+            bucketY = gameContainer.offsetHeight - BUCKET_HEIGHT - 20;
+            princessX = (gameContainer.offsetWidth / 2) - (princess.offsetWidth / 2);
+
+            updateUI();
+            
+            // Limpa os itens existentes
+            document.querySelectorAll('.item').forEach(item => item.remove());
+
+            gameLoopInterval = setInterval(gameLoop, 1000 / 60);
+            itemDropInterval = setInterval(createItem, ITEM_INTERVAL);
+            princessMoveInterval = setInterval(movePrincess, 1500);
+
+            // Adiciona eventos para mouse (para desktop) e toque (para mobile)
+            gameContainer.addEventListener('mousemove', handleInputMove);
+            gameContainer.addEventListener('touchmove', handleInputMove);
+        }
+        
+        function endGame(state) {
+            sounds.backgroundMusic.pause();
+            clearInterval(gameLoopInterval);
+            clearInterval(itemDropInterval);
+            clearInterval(princessMoveInterval);
+            gameContainer.removeEventListener('mousemove', handleInputMove);
+            gameContainer.removeEventListener('touchmove', handleInputMove);
+            
+            messageContainer.style.display = 'flex';
+
+            if (state === 'gameOver') {
+                messageTitle.textContent = 'Game Over';
+                messageText.textContent = `Sua pontuação final: ${score}`;
+                finalPhoto.style.display = 'none';
+            } else if (state === 'success') {
+                messageTitle.textContent = 'Parabéns';
+                messageText.textContent = 'Com muito amor, tudo dá certo!';
+                finalPhoto.src = assetUrls.final;
+                finalPhoto.style.display = 'block';
+            }
+        }
+        
+        function handleInputMove(event) {
+            // Previne o comportamento padrão do navegador, como a rolagem da tela
+            event.preventDefault();
+
+            const containerRect = gameContainer.getBoundingClientRect();
+            let clientX;
+            
+            if (event.touches && event.touches.length > 0) {
+                clientX = event.touches[0].clientX;
+            } else {
+                clientX = event.clientX; 
+            }
+            
+            let newX = clientX - containerRect.left - (BUCKET_WIDTH / 2);
+            
+            if (newX < 0) {
+                newX = 0;
+            } else if (newX > containerRect.width - BUCKET_WIDTH) {
+                newX = containerRect.width - BUCKET_WIDTH;
+            }
+            
+            bucketX = newX;
+            bucket.style.left = `${bucketX}px`;
+        }
+        
+        // Event listeners para os botões
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', () => {
+             startMenu.style.display = 'flex';
+             messageContainer.style.display = 'none';
+             gameBackground.src = assetUrls.startBackground;
+             sounds.backgroundMusic.currentTime = 0;
+        });
+
+    </script>
+
+</body>
+</html>
